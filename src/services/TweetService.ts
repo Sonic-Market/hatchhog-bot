@@ -33,67 +33,84 @@ export class TweetService {
     let nextToken: string | undefined = undefined;
     let newestId: string | undefined = undefined;
 
-    do {
-      const result: TweetSearchRecentV2Paginator = await this.clientReadOnly.v2.search(
-        `${CONFIG.BOT.handle} -is:retweet`,
-        {
-          'tweet.fields': ['author_id', 'created_at', 'conversation_id', 'referenced_tweets'],
-          sort_order: 'recency',
-          max_results: this.PAGE_SIZE,
-          start_time: startTime.toISOString(),
-          since_id: sinceId,
-          next_token: nextToken
-        }
-      );
-      allTweets.push(...result.tweets);
+    try {
+      do {
+        const result: TweetSearchRecentV2Paginator = await this.clientReadOnly.v2.search(
+          `${CONFIG.BOT.handle} -is:retweet`,
+          {
+            'tweet.fields': ['author_id', 'created_at', 'conversation_id', 'referenced_tweets'],
+            sort_order: 'recency',
+            max_results: this.PAGE_SIZE,
+            start_time: startTime.toISOString(),
+            since_id: sinceId,
+            next_token: nextToken
+          }
+        );
+        allTweets.push(...result.tweets);
 
-      if (result.tweets.length >= this.PAGE_SIZE && result.meta.next_token) {
-        nextToken = result.meta.next_token;
-      } else {
-        nextToken = undefined;
-      }
-
-      if (result.tweets.length > 0 && result.meta.newest_id) {
-        if (!newestId || BigInt(result.meta.newest_id) > BigInt(newestId)) {
-          newestId = result.meta.newest_id;
+        if (result.tweets.length >= this.PAGE_SIZE && result.meta.next_token) {
+          nextToken = result.meta.next_token;
+        } else {
+          nextToken = undefined;
         }
-      }
-    } while (nextToken);
-    return {
-      tweets: allTweets,
-      newestId
-    };
+
+        if (result.tweets.length > 0 && result.meta.newest_id) {
+          if (!newestId || BigInt(result.meta.newest_id) > BigInt(newestId)) {
+            newestId = result.meta.newest_id;
+          }
+        }
+      } while (nextToken);
+      return {
+        tweets: allTweets,
+        newestId
+      };
+    } catch (e: any) {
+      logger.error('Error searching recent mentions', {
+        startTime: startTime.toISOString(),
+        sinceId,
+        error: e.stack
+      });
+      throw e;
+    }
   }
 
   async validateTweet(tweet: TweetV2): Promise<boolean> {
-    const user = await this.clientReadOnly.v2.user(tweet.author_id!, {
-      'user.fields': ['created_at', 'public_metrics']
-    });
-
-    const accountAge = Date.now() - new Date(user.data.created_at!).getTime();
-    if (accountAge < CONFIG.SECURITY.MIN_ACCOUNT_AGE_DAYS * 24 * 60 * 60 * 1000) {
-      logger.debug('Account age validation failed', {
-        age: accountAge
+    try {
+      const user = await this.clientReadOnly.v2.user(tweet.author_id!, {
+        'user.fields': ['created_at', 'public_metrics']
       });
-      return false;
-    }
 
-    if ((user.data.public_metrics!.followers_count || 0) < CONFIG.SECURITY.MIN_FOLLOWERS) {
-      logger.debug('Follower count validation failed', {
-        followers: user.data.public_metrics!.followers_count || 0
+      const accountAge = Date.now() - new Date(user.data.created_at!).getTime();
+      if (accountAge < CONFIG.SECURITY.MIN_ACCOUNT_AGE_DAYS * 24 * 60 * 60 * 1000) {
+        logger.debug('Account age validation failed', {
+          age: accountAge
+        });
+        return false;
+      }
+
+      if ((user.data.public_metrics!.followers_count || 0) < CONFIG.SECURITY.MIN_FOLLOWERS) {
+        logger.debug('Follower count validation failed', {
+          followers: user.data.public_metrics!.followers_count || 0
+        });
+        return false;
+      }
+
+      const tweetText = tweet.text.toLowerCase();
+      if (CONFIG.SECURITY.BLOCKED_KEYWORDS.some(keyword => tweetText.includes(keyword))) {
+        logger.debug('Blocked keywords validation failed', {
+          tweetText
+        });
+        return false;
+      }
+
+      return true;
+    } catch (e: any) {
+      logger.error('Error validating tweet', {
+        tweetId: tweet.id,
+        error: e.stack
       });
-      return false;
+      throw e;
     }
-
-    const tweetText = tweet.text.toLowerCase();
-    if (CONFIG.SECURITY.BLOCKED_KEYWORDS.some(keyword => tweetText.includes(keyword))) {
-      logger.debug('Blocked keywords validation failed', {
-        tweetText
-      });
-      return false;
-    }
-
-    return true;
   }
 
   async extractDescriptionAndContext(tweet: TweetV2): Promise<{
@@ -102,29 +119,47 @@ export class TweetService {
   }> {
     const contextTexts: string[] = [];
     const contextIds = new Set<string>();
-    if (tweet.conversation_id! !== tweet.id) {
-      contextIds.add(tweet.conversation_id!);
-    }
 
-    for (const referencedTweet of tweet.referenced_tweets!) {
-      if (referencedTweet.type === 'quoted' || referencedTweet.type === 'replied_to') {
-        contextIds.add(referencedTweet.id);
+    try {
+      if (tweet.conversation_id! !== tweet.id) {
+        contextIds.add(tweet.conversation_id!);
       }
-    }
 
-    for (const contextTweetId of contextIds) {
-      const contextTweet = await this.clientReadOnly.v2.singleTweet(contextTweetId);
-      contextTexts.push(contextTweet.data.text);
-    }
+      for (const referencedTweet of tweet.referenced_tweets!) {
+        if (referencedTweet.type === 'quoted' || referencedTweet.type === 'replied_to') {
+          contextIds.add(referencedTweet.id);
+        }
+      }
 
-    return {
-      description: this.sanitizeTweetText(tweet.text),
-      context: contextTexts.map(text => this.sanitizeTweetText(text)).join('\n')
-    };
+      for (const contextTweetId of contextIds) {
+        const contextTweet = await this.clientReadOnly.v2.singleTweet(contextTweetId);
+        contextTexts.push(contextTweet.data.text);
+      }
+
+      return {
+        description: this.sanitizeTweetText(tweet.text),
+        context: contextTexts.map(text => this.sanitizeTweetText(text)).join('\n')
+      };
+    } catch (e: any) {
+      logger.error('Error extracting description and context', {
+        tweetId: tweet.id,
+        error: e.stack
+      });
+      throw e;
+    }
   }
 
   async replyToTweet(text: string, replyToTweetId: string): Promise<void> {
-    await this.client.v2.reply(text, replyToTweetId);
+    try {
+      await this.client.v2.reply(text, replyToTweetId);
+    } catch (e: any) {
+      logger.error('Error replying to tweet', {
+        text,
+        replyToTweetId,
+        error: e.stack
+      });
+      throw e;
+    }
   }
 
   private sanitizeTweetText(text: string): string {
