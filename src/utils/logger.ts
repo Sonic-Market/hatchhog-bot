@@ -57,7 +57,7 @@ class Logger {
     log(message, value, 'warn', sendMessageToSlack)
   }
 
-  error(message: string, value: any, sendMessageToSlack = false) {
+  error(message: string, value: any, sendMessageToSlack = true) {
     log(message, value, 'error', sendMessageToSlack)
   }
 }

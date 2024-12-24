@@ -1,7 +1,7 @@
-export type HatchhogToken = {
+export type HatchhogTokenInfo = {
   name: string;
   symbol: string;
   description: string;
   metaUri: string;
-  tokenReceiver: string | null;
+  tokenReceiver: `0x${string}` | null;
 }
