@@ -83,23 +83,33 @@ export class TweetService {
       const accountAge = Date.now() - new Date(user.data.created_at!).getTime();
       if (accountAge < CONFIG.SECURITY.MIN_ACCOUNT_AGE_DAYS * 24 * 60 * 60 * 1000) {
         logger.debug('Account age validation failed', {
+          id: user.data.id,
+          name: user.data.name,
+          username: user.data.username,
           age: accountAge
-        });
+        }, true);
         return false;
       }
 
       if ((user.data.public_metrics!.followers_count || 0) < CONFIG.SECURITY.MIN_FOLLOWERS) {
         logger.debug('Follower count validation failed', {
-          followers: user.data.public_metrics!.followers_count || 0
-        });
+          id: user.data.id,
+          name: user.data.name,
+          username: user.data.username,
+          followers: user.data.public_metrics!.followers_count || 0,
+        }, true);
         return false;
       }
 
       const tweetText = tweet.text.toLowerCase();
       if (CONFIG.SECURITY.BLOCKED_KEYWORDS.some(keyword => tweetText.includes(keyword))) {
         logger.debug('Blocked keywords validation failed', {
+          id: user.data.id,
+          name: user.data.name,
+          username: user.data.username,
+          tweetId: tweet.id,
           tweetText
-        });
+        }, true);
         return false;
       }
 
