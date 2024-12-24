@@ -108,7 +108,7 @@ export class HatchHogBot {
         logger.debug('Invalid tweet', {
           tweetId: tweet.id,
           authorId: tweet.author_id
-        });
+        }, true);
         return;
       }
 
