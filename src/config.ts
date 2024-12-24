@@ -5,8 +5,8 @@ config();
 export const CONFIG = {
   RATE_LIMITS: {
     MAX_REQUESTS_PER_USER: 3,
-    TIME_WINDOW_MS: 24 * 60 * 60 * 1000, // 24 hours
-    GLOBAL_REQUESTS_PER_MINUTE: 30
+    USER_RESET_TIME_MS: 24 * 60 * 60 * 1000, // 24 hours
+    GLOBAL_REQUESTS_PER_DAY: 100
   },
   SECURITY: {
     MIN_ACCOUNT_AGE_DAYS: 30,
