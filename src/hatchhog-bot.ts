@@ -3,12 +3,14 @@ import {logger} from './utils/logger';
 import {TweetService} from "./services/TweetService.ts";
 import {RateLimiterService} from "./services/RateLimiterService.ts";
 import {TokenInfoGeneratorService} from "./services/TokenInfoGeneratorService.ts";
+import {HatchhogService} from "./services/HatchhogService.ts";
 import {HatchhogTokenInfo, RateLimit} from "./types.ts";
 
 export class HatchhogBot {
   private tweetService: TweetService;
   private rateLimiter: RateLimiterService;
   private tokenInfoGeneratorService: TokenInfoGeneratorService;
+  private hatchhogService: HatchhogService;
 
   private processedTweets: Set<string>;
   private queue: TweetV2[] = [];
@@ -18,6 +20,7 @@ export class HatchhogBot {
     this.tweetService = new TweetService();
     this.rateLimiter = new RateLimiterService();
     this.tokenInfoGeneratorService = new TokenInfoGeneratorService();
+    this.hatchhogService = new HatchhogService();
     this.processedTweets = new Set<string>();
   }
 
@@ -54,6 +57,7 @@ export class HatchhogBot {
               }, true);
             }
           }
+          this.processLaunchQueue();
         } catch (error: any) {
           logger.error('Error polling tweets', {
             error: error.stack
@@ -73,13 +77,25 @@ export class HatchhogBot {
 
   private async addToLaunchQueue(tweet: TweetV2) {
     this.queue.push(tweet);
-    if (!this.processing) this.processLaunchQueue();
+    this.processLaunchQueue();
   }
 
   private async processLaunchQueue() {
-    if (this.processing || this.queue.length === 0) return;
+    if (this.processing) return;
 
     this.processing = true;
+    try {
+      const migratedTokens = await this.hatchhogService.migrateAll();
+      if (migratedTokens.length > 0) {
+        logger.info('Migrated tokens', {
+          migratedTokens
+        }, true);
+      }
+    } catch (error: any) {
+      logger.error('Error migrating tokens', {
+        error: error.stack
+      });
+    }
     while (this.queue.length > 0) {
       const tweet = this.queue[0];
       try {
@@ -125,8 +141,13 @@ export class HatchhogBot {
         descriptionAndContext.context
       );
 
-      // TODO: launch memCoin and get launchUrl
-      const launchUrl = '';
+      const launchedTokenAddress = await this.hatchhogService.hatch(
+        hatchhogTokenInfo.name,
+        hatchhogTokenInfo.symbol,
+        hatchhogTokenInfo.tokenReceiver,
+        hatchhogTokenInfo.metaUri
+      )
+      const launchUrl = this.hatchhogService.getSonicMarketUrlForToken(launchedTokenAddress)
 
       const tweetText = this.makeTweetText(hatchhogTokenInfo, launchUrl, rateLimit.user, rateLimit.global);
       await this.tweetService.replyToTweet(tweetText, tweet.id);

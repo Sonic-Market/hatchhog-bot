@@ -24,6 +24,10 @@ export class HatchhogService {
     });
   }
 
+  getSonicMarketUrlForToken(token: Address): string {
+    return `https://www.sonic.market/hatch-hog/trade?inputCurrency=0x0000000000000000000000000000000000000000&outputCurrency=${token}&chain=146`
+  }
+
   async hatch(
     name: string,
     symbol: string,
