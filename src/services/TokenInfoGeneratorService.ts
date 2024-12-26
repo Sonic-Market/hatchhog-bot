@@ -1,7 +1,9 @@
 import OpenAI from 'openai';
 import {logger} from '../utils/logger';
-import {OPENAI_API_KEY} from '../config';
+import {OPENAI_API_KEY, PINATA_GATEWAY, PINATA_JWT} from '../config';
 import {HatchhogTokenInfo} from "../types.ts";
+import {PinataSDK} from 'pinata-web3';
+import {v4 as uuidv4} from 'uuid';
 
 type TokenInfoDetails = {
   name: string;
@@ -11,6 +13,7 @@ type TokenInfoDetails = {
 
 export class TokenInfoGeneratorService {
   private aiClient: OpenAI;
+  private pinata: PinataSDK;
   private tokenInfoDetailsJsonSchemaForAiClient = {
     type: "object",
     properties: {
@@ -26,6 +29,10 @@ export class TokenInfoGeneratorService {
     this.aiClient = new OpenAI({
       apiKey: OPENAI_API_KEY,
     });
+    this.pinata = new PinataSDK({
+      pinataJwt: PINATA_JWT,
+      pinataGateway: PINATA_GATEWAY
+    });
   }
 
   public async generateTokenInfo(description: string, context: string): Promise<HatchhogTokenInfo> {
@@ -33,9 +40,7 @@ export class TokenInfoGeneratorService {
       const tokenReceiver = this.extractWalletAddress(description);
       const generatedTokenInfoDetails = await this.generateTokenInfoDetails(description, context);
       const imageBase64 = await this.generateTokenImage(generatedTokenInfoDetails);
-
-      // TODO: upload details(including image) to ipfs and get uri
-      const metaUri = 'https://i.namu.wiki/i/qoVZMsPIoqQ-4279vTikZP3BBt2k1MpnqZz4laiShdeiq3FnWaKp1vCzJ6YPl_c82xvtrOlamlg55J5plfP9Agg19eLdI18Vvxha9WEk3i-q0UpGExc9KmQ6jh5DXgya4z_wrbrjLb8yjW3oLsU0Vw.webp';
+      const metaUri = await this.uploadToIpfs(imageBase64, generatedTokenInfoDetails);
 
       return {
         ...generatedTokenInfoDetails,
@@ -127,5 +132,29 @@ export class TokenInfoGeneratorService {
     }
 
     return imageResponse.data[0].b64_json;
+  }
+
+  private async uploadToIpfs(imageBase64: string, tokenInfo: TokenInfoDetails): Promise<string> {
+    const imageBuffer = Buffer.from(imageBase64, 'base64');
+    const fileName = `${tokenInfo.symbol}-${uuidv4()}.png`;
+    const file = new File([imageBuffer], fileName, {type: 'image/png'});
+
+    const pinataImageUploadResult = await this.pinata.upload.file(file);
+    const imageHash = `ipfs://${pinataImageUploadResult.IpfsHash}`;
+
+    const metadata = {
+      name: tokenInfo.name,
+      symbol: tokenInfo.symbol,
+      description: tokenInfo.description,
+      image: imageHash,
+    };
+    const metadataFileName = `${tokenInfo.symbol}-${uuidv4()}.json`;
+
+    const pinataMetadataUploadResult = await this.pinata.upload.json(metadata, {
+      metadata: {
+        name: metadataFileName,
+      }
+    });
+    return `ipfs://${pinataMetadataUploadResult.IpfsHash}`;
   }
 }

@@ -25,3 +25,5 @@ export const TWITTER_APP_SECRET: string = process.env.TWITTER_APP_SECRET!;
 export const TWITTER_ACCESS_TOKEN: string = process.env.TWITTER_ACCESS_TOKEN!;
 export const TWITTER_ACCESS_TOKEN_SECRET: string = process.env.TWITTER_ACCESS_TOKEN_SECRET!;
 export const TWITTER_BEARER_TOKEN: string = process.env.TWITTER_BEARER_TOKEN!;
+export const PINATA_JWT: string = process.env.PINATA_JWT!;
+export const PINATA_GATEWAY: string = process.env.PINATA_GATEWAY!;
