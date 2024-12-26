@@ -36,7 +36,7 @@ export class TweetService {
     try {
       do {
         const result: TweetSearchRecentV2Paginator = await this.clientReadOnly.v2.search(
-          `${CONFIG.BOT.handle} -is:retweet`,
+          `${CONFIG.BOT.HANDLE} -is:retweet`,
           {
             'tweet.fields': ['author_id', 'created_at', 'conversation_id', 'referenced_tweets'],
             sort_order: 'recency',
@@ -173,6 +173,6 @@ export class TweetService {
   }
 
   private sanitizeTweetText(text: string): string {
-    return text.replace(CONFIG.BOT.handleRegex, '').trim();
+    return text.replace(CONFIG.BOT.HANDLE_REGEX, '').trim();
   }
 }

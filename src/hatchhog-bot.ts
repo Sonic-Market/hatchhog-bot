@@ -5,7 +5,7 @@ import {RateLimiterService} from "./services/RateLimiterService.ts";
 import {TokenInfoGeneratorService} from "./services/TokenInfoGeneratorService.ts";
 import {HatchhogTokenInfo, RateLimit} from "./types.ts";
 
-export class HatchHogBot {
+export class HatchhogBot {
   private tweetService: TweetService;
   private rateLimiter: RateLimiterService;
   private tokenInfoGeneratorService: TokenInfoGeneratorService;

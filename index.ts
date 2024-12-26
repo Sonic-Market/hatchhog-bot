@@ -1,5 +1,5 @@
-import {HatchHogBot} from "./src/hatchHogBot.ts";
+import {HatchhogBot} from "./src/hatchhog-bot.ts";
 
-const hatchHogBot = new HatchHogBot();
+const hatchHogBot = new HatchhogBot();
 
 hatchHogBot.start();

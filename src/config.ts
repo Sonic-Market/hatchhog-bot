@@ -15,8 +15,8 @@ export const CONFIG = {
     BLOCKED_KEYWORDS: []
   },
   BOT: {
-    handle: '@TheHatchhog',
-    handleRegex: /@TheHatchhog/g
+    HANDLE: '@TheHatchhog',
+    HANDLE_REGEX: /@TheHatchhog/g
   },
   CONTRACT: {
     CHAIN: sonicMainnet,
