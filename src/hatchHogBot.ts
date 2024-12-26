@@ -28,11 +28,17 @@ export class HatchHogBot {
       // start time must be at least 10 seconds ago because of Twitter API rules
       const appStartTimestamp = Date.now() - 10 * 1000;
       let sinceId: string | undefined = undefined;
+      let sinceIdUpdatedAt: number | undefined = undefined;
 
       while (true) {
         try {
           const startTime = new Date(Math.max(Date.now() - 5 * 60 * 1000, appStartTimestamp));
+          if (sinceIdUpdatedAt && Date.now() - sinceIdUpdatedAt > 5 * 60 * 1000) {
+            sinceId = undefined;
+            sinceIdUpdatedAt = undefined;
+          }
           const {tweets, newestId} = await this.tweetService.searchRecentMentions(startTime, sinceId);
+          if (newestId) sinceIdUpdatedAt = Date.now();
           sinceId = newestId;
 
           for (const tweet of tweets) {
@@ -53,8 +59,8 @@ export class HatchHogBot {
             error: error.stack
           });
         } finally {
-          // 3 seconds delay between each poll because of Twitter API rate limits
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          // 10 seconds delay between each poll because of Twitter API rate limits
+          await new Promise(resolve => setTimeout(resolve, 10000));
         }
       }
     } catch (error: any) {

@@ -41,7 +41,7 @@ export class TweetService {
             'tweet.fields': ['author_id', 'created_at', 'conversation_id', 'referenced_tweets'],
             sort_order: 'recency',
             max_results: this.PAGE_SIZE,
-            start_time: startTime.toISOString(),
+            start_time: sinceId ? undefined : startTime.toISOString(),
             since_id: sinceId,
             next_token: nextToken
           }
