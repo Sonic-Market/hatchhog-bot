@@ -147,8 +147,18 @@ export class HatchHogBot {
   }
 
   private makeTweetText(hatchhogTokenInfo: HatchhogTokenInfo, launchUrl: string, userRateLimit: RateLimit, globalRateLimit: RateLimit) {
-    const userResetMinutes = Math.ceil((userRateLimit.resetTimeInMs - Date.now()) / (1000 * 60));
-    const globalResetMinutes = Math.ceil((globalRateLimit.resetTimeInMs - Date.now()) / (1000 * 60));
+    const formatTimeRemaining = (milliseconds: number): string => {
+      const minutes = Math.ceil((milliseconds - Date.now()) / (1000 * 60));
+      if (minutes < 60) {
+        return `${minutes}m`;
+      }
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    };
+
+    const userTimeDisplay = formatTimeRemaining(userRateLimit.resetTimeInMs);
+    const globalTimeDisplay = formatTimeRemaining(globalRateLimit.resetTimeInMs);
 
     const creatorDisplay = hatchhogTokenInfo.tokenReceiver
       ? `Token Creator: ${hatchhogTokenInfo.tokenReceiver.slice(0, 6)}...${hatchhogTokenInfo.tokenReceiver.slice(-4)}`
@@ -164,8 +174,8 @@ export class HatchHogBot {
       `🔗 Launch URL: ${launchUrl}`,
       '',
       `ℹ️ Quick FYI:`,
-      `👤 You can launch ${userRateLimit.remainingRequests} more tokens (refreshes in ${userResetMinutes}m)`,
-      `🌐 The network can handle ${globalRateLimit.remainingRequests} more launches (refreshes in ${globalResetMinutes}m)`
+      `👤 You can launch ${userRateLimit.remainingRequests} more tokens (refreshes in ${userTimeDisplay})`,
+      `🌐 The network can handle ${globalRateLimit.remainingRequests} more launches (refreshes in ${globalTimeDisplay})`
     ].join('\n');
   }
 }
