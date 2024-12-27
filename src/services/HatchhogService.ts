@@ -25,7 +25,7 @@ export class HatchhogService {
   }
 
   getSonicMarketUrlForToken(token: Address): string {
-    return `https://www.sonic.market/hatch-hog/trade?inputCurrency=0x0000000000000000000000000000000000000000&outputCurrency=${token}&chain=146`
+    return `https://www.sonic.market/hatchhog/trade?inputCurrency=0x0000000000000000000000000000000000000000&outputCurrency=${token}&chain=146`
   }
 
   async hatch(
