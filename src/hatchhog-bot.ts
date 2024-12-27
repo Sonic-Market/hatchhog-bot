@@ -191,7 +191,7 @@ export class HatchhogBot {
       : `Token Creator: anonymous`;
 
     return [
-      `🎉 Congratulations! Your token "${hatchhogTokenInfo.name}" ($${hatchhogTokenInfo.symbol}) has been successfully hatched 🐣`,
+      `🎉 Congratulations! Your token "${hatchhogTokenInfo.name}" ( $${hatchhogTokenInfo.symbol} ) has been successfully hatched 🐣`,
       '',
       `📝 ${hatchhogTokenInfo.description}`,
       '',
