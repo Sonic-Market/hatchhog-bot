@@ -143,6 +143,10 @@ export class HatchhogService {
         {},
       )
       return migrateCandidates.data.hogTokens.filter(hogToken => {
+        const totalUnitFilledAmount = hogToken.priorMilestones.reduce((acc, milestone) => acc + BigInt(milestone.unitFilledAmount), 0n);
+        if (totalUnitFilledAmount === 0n) {
+          return false;
+        }
         if (BigInt(hogToken.deadline) < BigInt(Math.floor(Date.now() / 1000))) {
           return true;
         }

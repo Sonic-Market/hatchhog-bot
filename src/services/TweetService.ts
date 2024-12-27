@@ -48,6 +48,14 @@ export class TweetService {
         );
         allTweets.push(...result.tweets);
 
+        if (result.rateLimit.remaining === 0) {
+          logger.warn('Rate limit reached', {
+            startTime: startTime.toISOString(),
+            sinceId
+          }, true);
+          await new Promise(resolve => setTimeout(resolve, result.rateLimit.reset * 1000 - Date.now()));
+        }
+
         if (result.tweets.length >= this.PAGE_SIZE && result.meta.next_token) {
           nextToken = result.meta.next_token;
         } else {

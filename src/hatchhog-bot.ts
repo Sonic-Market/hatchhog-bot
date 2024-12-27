@@ -28,6 +28,9 @@ export class HatchhogBot {
     try {
       logger.info('Starting bot', {}, true);
 
+      // wait for 10 seconds before starting because of Twitter API rules
+      await new Promise(resolve => setTimeout(resolve, 10000));
+
       // start time must be at least 10 seconds ago because of Twitter API rules
       const appStartTimestamp = Date.now() - 10 * 1000;
       let sinceId: string | undefined = undefined;
@@ -35,8 +38,8 @@ export class HatchhogBot {
 
       while (true) {
         try {
-          const startTime = new Date(Math.max(Date.now() - 5 * 60 * 1000, appStartTimestamp));
-          if (sinceIdUpdatedAt && Date.now() - sinceIdUpdatedAt > 5 * 60 * 1000) {
+          const startTime = new Date(Math.max(Date.now() - 42 * 60 * 1000, appStartTimestamp));
+          if (sinceIdUpdatedAt && Date.now() - sinceIdUpdatedAt > 42 * 60 * 1000) {
             sinceId = undefined;
             sinceIdUpdatedAt = undefined;
           }
