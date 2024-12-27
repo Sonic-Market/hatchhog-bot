@@ -83,7 +83,7 @@ export class TokenInfoGeneratorService {
 
       Format the response as a JSON object with:
       - name (string)
-      - symbol (4 letters max)
+      - symbol (1~4 letters)
       - description (string)
       - imageDescription (string)
     `;

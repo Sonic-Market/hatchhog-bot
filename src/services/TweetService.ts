@@ -51,7 +51,8 @@ export class TweetService {
         if (result.rateLimit.remaining === 0) {
           logger.warn('Rate limit reached', {
             startTime: startTime.toISOString(),
-            sinceId
+            sinceId,
+            remainingSecondsForReset: result.rateLimit.reset - Math.floor(Date.now() / 1000)
           }, true);
           await new Promise(resolve => setTimeout(resolve, result.rateLimit.reset * 1000 - Date.now()));
         }
