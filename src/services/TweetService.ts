@@ -135,7 +135,7 @@ export class TweetService {
         contextIds.add(tweet.conversation_id!);
       }
 
-      for (const referencedTweet of tweet.referenced_tweets!) {
+      for (const referencedTweet of tweet.referenced_tweets || []) {
         if (referencedTweet.type === 'quoted' || referencedTweet.type === 'replied_to') {
           contextIds.add(referencedTweet.id);
         }

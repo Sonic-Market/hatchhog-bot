@@ -143,7 +143,7 @@ export class HatchhogService {
         {},
       )
       return migrateCandidates.data.hogTokens.filter(hogToken => {
-        if (BigInt(hogToken.deadline) < BigInt(Date.now() / 1000)) {
+        if (BigInt(hogToken.deadline) < BigInt(Math.floor(Date.now() / 1000))) {
           return true;
         }
         return hogToken.priorMilestones.length == CONFIG.CONTRACT.PRIOR_MILESTONE_LENGTH

@@ -9,6 +9,7 @@ type TokenInfoDetails = {
   name: string;
   symbol: string;
   description: string;
+  imageDescription: string;
 };
 
 export class TokenInfoGeneratorService {
@@ -20,9 +21,10 @@ export class TokenInfoGeneratorService {
       name: {type: "string"},
       symbol: {type: "string"},
       description: {type: "string"},
+      imageDescription: {type: "string"}
     },
     additionalProperties: false,
-    required: ["name", "symbol", "description"]
+    required: ["name", "symbol", "description", "imageDescription"]
   };
 
   constructor() {
@@ -43,7 +45,9 @@ export class TokenInfoGeneratorService {
       const metaUri = await this.uploadToIpfs(imageBase64, generatedTokenInfoDetails);
 
       return {
-        ...generatedTokenInfoDetails,
+        name: generatedTokenInfoDetails.name,
+        symbol: generatedTokenInfoDetails.symbol,
+        description: generatedTokenInfoDetails.description,
         metaUri,
         tokenReceiver
       };
@@ -74,15 +78,18 @@ export class TokenInfoGeneratorService {
 
       ${contextPrompt}
 
-      Generate a creative name, symbol, and description that match the theme.
+      Generate a creative name, symbol, description and imageDescription that match the theme.
+      NOTE: 'imageDescription' should be suitable for a logo design. It will be used as a prompt to generate the logo. So any blocked words or inappropriate content should be avoided. specifically, avoid using the name of real people, brands, or any other copyrighted content.
+
       Format the response as a JSON object with:
       - name (string)
       - symbol (4 letters max)
       - description (string)
+      - imageDescription (string)
     `;
 
     const detailsResponse = await this.aiClient.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [{
         role: "system",
         content: "You are a creative meme coin generator that creates fun and engaging cryptocurrency concepts."
@@ -112,19 +119,20 @@ export class TokenInfoGeneratorService {
   private async generateTokenImage(tokenInfoDetails: TokenInfoDetails): Promise<string> {
     const imagePrompt = `
       Create a fun and memeable cryptocurrency logo for a coin with symbol "${tokenInfoDetails.symbol}" and name "${tokenInfoDetails.name}".
-      The coin's theme is: ${tokenInfoDetails.description}.
+      The logo's description is: ${tokenInfoDetails.imageDescription}.
+      Make it a circular logo with a transparent background.
+      NOTE: No text should be included in the logo.
       Style: Cartoon-like, vibrant colors, memorable, suitable for crypto community.
-      Make it a circular coin design with no text.
     `;
 
     const imageResponse = await this.aiClient.images.generate({
       prompt: imagePrompt,
-      model: "dall-e-2",
+      model: "dall-e-3",
       n: 1,
-      // quality: 'standard', // only for dall-e-3
-      size: "512x512",
+      quality: 'hd', // only for dall-e-3
+      size: "1024x1024", // only for dall-e-3
       response_format: "b64_json",
-      style: "vivid",
+      style: "vivid", // only for dall-e-3
     });
 
     if (imageResponse.data[0].b64_json === undefined) {
