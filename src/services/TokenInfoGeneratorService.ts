@@ -120,7 +120,7 @@ export class TokenInfoGeneratorService {
     const imagePrompt = `
       Create a fun and memeable cryptocurrency logo for a coin with symbol "${tokenInfoDetails.symbol}" and name "${tokenInfoDetails.name}".
       The logo's description is: ${tokenInfoDetails.imageDescription}.
-      Make it a circular logo with a transparent background.
+      Make it a circular logo.
       NOTE: No text should be included in the logo.
       Style: Cartoon-like, vibrant colors, memorable, suitable for crypto community.
     `;
