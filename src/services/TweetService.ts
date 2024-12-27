@@ -163,7 +163,10 @@ export class TweetService {
         tweetId: tweet.id,
         error: e.stack
       });
-      throw e;
+      return {
+        description: this.sanitizeTweetText(tweet.text),
+        context: ''
+      };
     }
   }
 

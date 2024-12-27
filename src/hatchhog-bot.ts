@@ -137,6 +137,8 @@ export class HatchhogBot {
         return;
       }
 
+      await this.tweetService.replyToTweet('🥚 Please wait, Your token is hatching...', tweet.id);
+
       const descriptionAndContext = await this.tweetService.extractDescriptionAndContext(tweet);
 
       const hatchhogTokenInfo = await this.tokenInfoGeneratorService.generateTokenInfo(
@@ -189,7 +191,7 @@ export class HatchhogBot {
       : `Token Creator: anonymous`;
 
     return [
-      `🎉 Congratulations! Your token "${hatchhogTokenInfo.name}" (${hatchhogTokenInfo.symbol}) has been successfully launched! 🚀`,
+      `🎉 Congratulations! Your token "${hatchhogTokenInfo.name}" (${hatchhogTokenInfo.symbol}) has been successfully hatched 🐣`,
       '',
       `📝 ${hatchhogTokenInfo.description}`,
       '',
