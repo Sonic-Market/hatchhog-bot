@@ -63,8 +63,8 @@ export class HatchhogBot {
             error: error.stack
           });
         } finally {
-          // 10 seconds delay between each poll because of Twitter API rate limits
-          await new Promise(resolve => setTimeout(resolve, 10000));
+          // 15 seconds delay between each poll because of Twitter API rate limits
+          await new Promise(resolve => setTimeout(resolve, 15000));
         }
       }
     } catch (error: any) {
