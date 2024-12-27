@@ -67,7 +67,7 @@ export class HatchhogBot {
           });
         } finally {
           // 15 seconds delay between each poll because of Twitter API rate limits
-          await new Promise(resolve => setTimeout(resolve, 15000));
+          await new Promise(resolve => setTimeout(resolve, 15001));
         }
       }
     } catch (error: any) {
@@ -191,7 +191,7 @@ export class HatchhogBot {
       : `Token Creator: anonymous`;
 
     return [
-      `🎉 Congratulations! Your token "${hatchhogTokenInfo.name}" (${hatchhogTokenInfo.symbol}) has been successfully hatched 🐣`,
+      `🎉 Congratulations! Your token "${hatchhogTokenInfo.name}" ($${hatchhogTokenInfo.symbol}) has been successfully hatched 🐣`,
       '',
       `📝 ${hatchhogTokenInfo.description}`,
       '',
