@@ -49,11 +49,12 @@ export class TweetService {
         allTweets.push(...result.tweets);
 
         if (result.rateLimit.remaining === 0) {
+          const remainingSecondsForReset = result.rateLimit.reset - Math.floor(Date.now() / 1000);
           logger.warn('Rate limit reached', {
             startTime: startTime.toISOString(),
             sinceId,
-            remainingSecondsForReset: result.rateLimit.reset - Math.floor(Date.now() / 1000)
-          }, true);
+            remainingSecondsForReset
+          }, remainingSecondsForReset >= 10);
           await new Promise(resolve => setTimeout(resolve, result.rateLimit.reset * 1000 - Date.now()));
         }
 

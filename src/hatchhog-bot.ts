@@ -87,18 +87,19 @@ export class HatchhogBot {
     if (this.processing) return;
 
     this.processing = true;
-    try {
-      const migratedTokens = await this.hatchhogService.migrateAll();
-      if (migratedTokens.length > 0) {
-        logger.info('Migrated tokens', {
-          migratedTokens
-        }, true);
-      }
-    } catch (error: any) {
-      logger.error('Error migrating tokens', {
-        error: error.stack
-      });
-    }
+    // TODO: Uncomment this block to enable automatic migration of tokens
+    // try {
+    //   const migratedTokens = await this.hatchhogService.migrateAll();
+    //   if (migratedTokens.length > 0) {
+    //     logger.info('Migrated tokens', {
+    //       migratedTokens
+    //     }, true);
+    //   }
+    // } catch (error: any) {
+    //   logger.error('Error migrating tokens', {
+    //     error: error.stack
+    //   });
+    // }
     while (this.queue.length > 0) {
       const tweet = this.queue[0];
       try {
