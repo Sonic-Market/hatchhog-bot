@@ -9,7 +9,7 @@ import {
   TWITTER_BEARER_TOKEN
 } from '../config';
 import {TweetSearchRecentV2Paginator} from "twitter-api-v2/dist/esm/paginators";
-import {DescriptionAndContext, Tweet, TweetSearchResult, TweetWithContext} from "../types.ts";
+import {DescriptionAndContext, Tweet, TweetSearchResult, TweetWithContext, TwitterUser} from "../types.ts";
 
 export class TweetService {
   private readonly PAGE_SIZE: number = 100;
@@ -37,7 +37,8 @@ export class TweetService {
           `${CONFIG.BOT.HANDLE} -is:retweet`,
           {
             'tweet.fields': ['author_id', 'created_at', 'conversation_id', 'referenced_tweets'],
-            expansions: ['referenced_tweets.id'],
+            'user.fields': ['created_at', 'public_metrics'],
+            expansions: ['referenced_tweets.id', 'author_id'],
             sort_order: 'recency',
             max_results: this.PAGE_SIZE,
             start_time: sinceId ? undefined : startTime.toISOString(),
@@ -48,7 +49,8 @@ export class TweetService {
         allTweets.push(
           ...result.tweets.map(tweet => ({
             tweet,
-            includedTweets: result.includes.tweets || []
+            includedTweets: result.includes.tweets || [],
+            includedUsers: result.includes.users || []
           }))
         );
 
@@ -90,27 +92,38 @@ export class TweetService {
 
   async validateTweet(tweetWithContext: TweetWithContext): Promise<boolean> {
     try {
-      const user = await this.clientReadOnly.v2.user(tweetWithContext.tweet.author_id!, {
-        'user.fields': ['created_at', 'public_metrics']
-      });
+      let user: TwitterUser | undefined;
+      if (tweetWithContext.includedUsers) {
+        user = tweetWithContext.includedUsers.find(u => u.id === tweetWithContext.tweet.author_id);
+      }
+      if (!user) {
+        const response = await this.clientReadOnly.v2.user(tweetWithContext.tweet.author_id!, {
+          'user.fields': ['created_at', 'public_metrics']
+        });
+        user = response.data;
+        logger.warn('User not found in included users', {
+          tweetId: tweetWithContext.tweet.id,
+          userId: tweetWithContext.tweet.author_id,
+        }, true);
+      }
 
-      const accountAge = Date.now() - new Date(user.data.created_at!).getTime();
+      const accountAge = Date.now() - new Date(user.created_at!).getTime();
       if (accountAge < CONFIG.SECURITY.MIN_ACCOUNT_AGE_DAYS * 24 * 60 * 60 * 1000) {
         logger.debug('Account age validation failed', {
-          id: user.data.id,
-          name: user.data.name,
-          username: user.data.username,
+          id: user.id,
+          name: user.name,
+          username: user.username,
           age: accountAge
         }, true);
         return false;
       }
 
-      if ((user.data.public_metrics!.followers_count || 0) < CONFIG.SECURITY.MIN_FOLLOWERS) {
+      if ((user.public_metrics!.followers_count || 0) < CONFIG.SECURITY.MIN_FOLLOWERS) {
         logger.debug('Follower count validation failed', {
-          id: user.data.id,
-          name: user.data.name,
-          username: user.data.username,
-          followers: user.data.public_metrics!.followers_count || 0,
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          followers: user.public_metrics!.followers_count || 0,
         }, true);
         return false;
       }
@@ -118,9 +131,9 @@ export class TweetService {
       const tweetText = tweetWithContext.tweet.text.toLowerCase();
       if (CONFIG.SECURITY.BLOCKED_KEYWORDS.some(keyword => tweetText.includes(keyword))) {
         logger.debug('Blocked keywords validation failed', {
-          id: user.data.id,
-          name: user.data.name,
-          username: user.data.username,
+          id: user.id,
+          name: user.name,
+          username: user.username,
           tweetId: tweetWithContext.tweet.id,
           tweetText
         }, true);
@@ -160,6 +173,10 @@ export class TweetService {
         if (!contextTweet) {
           const response = await this.clientReadOnly.v2.singleTweet(contextTweetId);
           contextTweet = response.data;
+          logger.warn('Context tweet not found in included tweets', {
+            tweetId: tweetWithContext.tweet.id,
+            contextTweetId
+          }, true);
         }
         contextTexts.push(contextTweet.text);
       }
