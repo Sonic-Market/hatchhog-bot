@@ -138,7 +138,8 @@ export class HatchhogBot {
         return;
       }
 
-      await this.tweetService.replyToTweet('🥚 Please wait, Your token is hatching...', tweet.id);
+      // NOTE: Commented out because it's causing out account to be marked as spam
+      // await this.tweetService.replyToTweet('🥚 Please wait, Your token is hatching...', tweet.id);
 
       const descriptionAndContext = await this.tweetService.extractDescriptionAndContext(tweet);
 
@@ -153,7 +154,7 @@ export class HatchhogBot {
         hatchhogTokenInfo.tokenReceiver,
         hatchhogTokenInfo.metaUri
       )
-      const launchUrl = this.hatchhogService.getSonicMarketUrlForToken(launchedTokenAddress)
+      const launchUrl = await this.hatchhogService.getSonicMarketUrlForToken(launchedTokenAddress)
 
       const tweetText = this.makeTweetText(hatchhogTokenInfo, launchUrl, rateLimit.user, rateLimit.global);
       await this.tweetService.replyToTweet(tweetText, tweet.id);

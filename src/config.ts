@@ -38,3 +38,4 @@ export const HATCHHOG_CONTRACT_ADDRESS: string = process.env.HATCHHOG_CONTRACT_A
 export const BOT_PRIVATE_KEY: string = process.env.BOT_PRIVATE_KEY!;
 export const RPC_URL: string = process.env.RPC_URL!;
 export const TREASURY_ADDRESS: string = process.env.TREASURY_ADDRESS!;
+export const TINYURL_API_KEY: string = process.env.TINYURL_API_KEY!;

@@ -5,11 +5,13 @@ import {BOT_PRIVATE_KEY, CONFIG, HATCHHOG_CONTRACT_ADDRESS, RPC_URL, TREASURY_AD
 import {randomBytes} from 'crypto';
 import {fetchFromSubgraph} from "../utils/subgraph.ts";
 import {logger} from "../utils/logger.ts";
+import {UrlShortenerService} from "./UrlShortenerService.ts";
 
 export class HatchhogService {
   private readonly publicClient;
   private readonly walletClient;
   private readonly account;
+  private readonly urlShortener: UrlShortenerService;
 
   constructor() {
     this.publicClient = createPublicClient({
@@ -22,10 +24,12 @@ export class HatchhogService {
       transport: http(RPC_URL),
       account: this.account
     });
+    this.urlShortener = new UrlShortenerService();
   }
 
-  getSonicMarketUrlForToken(token: Address): string {
-    return `https://www.sonic.market/hatchhog/trade?inputCurrency=0x0000000000000000000000000000000000000000&outputCurrency=${token}&chain=146`
+  async getSonicMarketUrlForToken(token: Address): Promise<string> {
+    const longUrl = `https://www.sonic.market/hatchhog/trade?inputCurrency=0x0000000000000000000000000000000000000000&outputCurrency=${token}&chain=146`
+    return this.urlShortener.shortenUrl(longUrl);
   }
 
   async hatch(
