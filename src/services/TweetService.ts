@@ -36,9 +36,10 @@ export class TweetService {
         const result: TweetSearchRecentV2Paginator = await this.clientReadOnly.v2.search(
           `${CONFIG.BOT.HANDLE} -is:retweet`,
           {
-            'tweet.fields': ['author_id', 'created_at', 'conversation_id', 'referenced_tweets'],
+            'tweet.fields': ['author_id', 'created_at', 'conversation_id', 'referenced_tweets', 'attachments'],
             'user.fields': ['created_at', 'public_metrics'],
-            expansions: ['referenced_tweets.id', 'author_id'],
+            'media.fields': ['preview_image_url', 'url', 'alt_text'],
+            expansions: ['referenced_tweets.id', 'author_id', 'attachments.media_keys'],
             sort_order: 'recency',
             max_results: this.PAGE_SIZE,
             start_time: sinceId ? undefined : startTime.toISOString(),
@@ -50,7 +51,8 @@ export class TweetService {
           ...result.tweets.map(tweet => ({
             tweet,
             includedTweets: result.includes.tweets || [],
-            includedUsers: result.includes.users || []
+            includedUsers: result.includes.users || [],
+            includedMedia: result.includes.media || []
           }))
         );
 
@@ -153,6 +155,7 @@ export class TweetService {
   async extractDescriptionAndContext(tweetWithContext: TweetWithContext): Promise<DescriptionAndContext> {
     const contextTexts: string[] = [];
     const contextIds = new Set<string>();
+    const mediaKeys: string[] = tweetWithContext.tweet.attachments?.media_keys || [];
 
     try {
       if (tweetWithContext.tweet.conversation_id! !== tweetWithContext.tweet.id) {
@@ -179,11 +182,23 @@ export class TweetService {
           }, true);
         }
         contextTexts.push(contextTweet.text);
+        mediaKeys.push(...(contextTweet.attachments?.media_keys || []));
       }
+      const mediaKeysSet = new Set(mediaKeys);
+      const imageUrls = tweetWithContext.includedMedia
+        .filter(media => mediaKeysSet.has(media.media_key))
+        .map(media => {
+          if (media.type === 'photo') {
+            return media.url;
+          } else {
+            return media.preview_image_url;
+          }
+        }).filter(url => url !== undefined) as string[];
 
       return {
         description: this.sanitizeTweetText(tweetWithContext.tweet.text),
-        context: contextTexts.map(text => this.sanitizeTweetText(text)).join('\n')
+        context: contextTexts.map(text => this.sanitizeTweetText(text)).join('\n'),
+        imageUrls: imageUrls
       };
     } catch (e: any) {
       logger.error('Error extracting description and context', {
@@ -192,7 +207,8 @@ export class TweetService {
       });
       return {
         description: this.sanitizeTweetText(tweetWithContext.tweet.text),
-        context: ''
+        context: '',
+        imageUrls: []
       };
     }
   }

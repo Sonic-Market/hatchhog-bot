@@ -68,16 +68,22 @@ export class TokenInfoGeneratorService {
   }
 
   private async generateTokenInfoDetails(descriptionAndContext: DescriptionAndContext): Promise<TokenInfoDetails> {
-    const {description, context} = descriptionAndContext;
+    const {description, context, imageUrls} = descriptionAndContext;
     const contextPrompt = context.length > 0 ? `
       Additional context(description is reply tweet of context):
       "${context}"
+    ` : '';
+    const imagePrompt = imageUrls.length > 0 ? `
+      FYI; description and context include the attached image(s).
+      each image is either a photo or a preview image of a video.
     ` : '';
     const detailsPrompt = `
       Create a meme cryptocurrency based on the following description:
       "${description}"
 
       ${contextPrompt}
+
+      ${imagePrompt}
 
       Generate a creative name, symbol, description and imageDescription that match the theme.
       NOTE: 'imageDescription' should be suitable for a logo design. It will be used as a prompt to generate the logo. So any blocked words or inappropriate content should be avoided. specifically, avoid using the name of real people, brands, or any other copyrighted content.
@@ -96,7 +102,18 @@ export class TokenInfoGeneratorService {
         content: "You are a creative meme coin generator that creates fun and engaging cryptocurrency concepts."
       }, {
         role: "user",
-        content: detailsPrompt
+        content: [
+          {
+            type: "text",
+            text: detailsPrompt
+          },
+          ...imageUrls.map(url => ({
+            type: "image_url",
+            image_url: {
+              url,
+            }
+          } as const))
+        ]
       }],
       temperature: 0.7,
       response_format: {

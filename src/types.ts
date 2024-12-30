@@ -44,10 +44,19 @@ export type TwitterUser = {
   };
 }
 
+export interface TwitterMedia {
+  media_key: string;
+  type: 'video' | 'animated_gif' | 'photo' | string;
+  url?: string;
+  preview_image_url?: string;
+  alt_text?: string;
+}
+
 export type TweetWithContext = {
   tweet: Tweet;
   includedTweets: Tweet[];
   includedUsers: TwitterUser[];
+  includedMedia: TwitterMedia[];
 }
 
 export type TweetSearchResult = {
@@ -58,4 +67,5 @@ export type TweetSearchResult = {
 export type DescriptionAndContext = {
   description: string;
   context: string;
+  imageUrls: string[];
 }
