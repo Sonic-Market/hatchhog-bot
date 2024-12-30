@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import {logger} from '../utils/logger';
 import {OPENAI_API_KEY, PINATA_GATEWAY, PINATA_JWT} from '../config';
-import {HatchhogTokenInfo} from "../types.ts";
+import {DescriptionAndContext, HatchhogTokenInfo} from "../types.ts";
 import {PinataSDK} from 'pinata-web3';
 import {v4 as uuidv4} from 'uuid';
 
@@ -37,10 +37,10 @@ export class TokenInfoGeneratorService {
     });
   }
 
-  public async generateTokenInfo(description: string, context: string): Promise<HatchhogTokenInfo> {
+  public async generateTokenInfo(descriptionAndContext: DescriptionAndContext): Promise<HatchhogTokenInfo> {
     try {
-      const tokenReceiver = this.extractWalletAddress(description);
-      const generatedTokenInfoDetails = await this.generateTokenInfoDetails(description, context);
+      const tokenReceiver = this.extractWalletAddress(descriptionAndContext.description);
+      const generatedTokenInfoDetails = await this.generateTokenInfoDetails(descriptionAndContext);
       const imageBase64 = await this.generateTokenImage(generatedTokenInfoDetails);
       const metaUri = await this.uploadToIpfs(imageBase64, generatedTokenInfoDetails);
 
@@ -53,8 +53,8 @@ export class TokenInfoGeneratorService {
       };
     } catch (error: any) {
       logger.error('Error generating token info', {
-        description,
-        context,
+        description: descriptionAndContext.description,
+        context: descriptionAndContext.context,
         error: error.stack
       });
       throw error;
@@ -67,7 +67,8 @@ export class TokenInfoGeneratorService {
     return walletMatch ? walletMatch[0] as `0x${string}` : null;
   }
 
-  private async generateTokenInfoDetails(description: string, context: string): Promise<TokenInfoDetails> {
+  private async generateTokenInfoDetails(descriptionAndContext: DescriptionAndContext): Promise<TokenInfoDetails> {
+    const {description, context} = descriptionAndContext;
     const contextPrompt = context.length > 0 ? `
       Additional context(description is reply tweet of context):
       "${context}"

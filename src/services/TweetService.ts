@@ -1,4 +1,4 @@
-import {TweetV2, TwitterApi} from 'twitter-api-v2';
+import {TwitterApi} from 'twitter-api-v2';
 import {logger} from '../utils/logger';
 import {
   CONFIG,
@@ -9,6 +9,7 @@ import {
   TWITTER_BEARER_TOKEN
 } from '../config';
 import {TweetSearchRecentV2Paginator} from "twitter-api-v2/dist/esm/paginators";
+import {DescriptionAndContext, Tweet, TweetSearchResult, TweetWithContext} from "../types.ts";
 
 export class TweetService {
   private readonly PAGE_SIZE: number = 100;
@@ -25,11 +26,8 @@ export class TweetService {
     });
   }
 
-  async searchRecentMentions(startTime: Date, sinceId?: string): Promise<{
-    tweets: TweetV2[];
-    newestId: string | undefined;
-  }> {
-    const allTweets: TweetV2[] = [];
+  async searchRecentMentions(startTime: Date, sinceId?: string): Promise<TweetSearchResult> {
+    const allTweets: TweetWithContext[] = [];
     let nextToken: string | undefined = undefined;
     let newestId: string | undefined = undefined;
 
@@ -39,6 +37,7 @@ export class TweetService {
           `${CONFIG.BOT.HANDLE} -is:retweet`,
           {
             'tweet.fields': ['author_id', 'created_at', 'conversation_id', 'referenced_tweets'],
+            expansions: ['referenced_tweets.id'],
             sort_order: 'recency',
             max_results: this.PAGE_SIZE,
             start_time: sinceId ? undefined : startTime.toISOString(),
@@ -46,7 +45,12 @@ export class TweetService {
             next_token: nextToken
           }
         );
-        allTweets.push(...result.tweets);
+        allTweets.push(
+          ...result.tweets.map(tweet => ({
+            tweet,
+            includedTweets: result.includes.tweets || []
+          }))
+        );
 
         if (result.rateLimit.remaining === 0) {
           const remainingSecondsForReset = result.rateLimit.reset - Math.floor(Date.now() / 1000);
@@ -84,9 +88,9 @@ export class TweetService {
     }
   }
 
-  async validateTweet(tweet: TweetV2): Promise<boolean> {
+  async validateTweet(tweetWithContext: TweetWithContext): Promise<boolean> {
     try {
-      const user = await this.clientReadOnly.v2.user(tweet.author_id!, {
+      const user = await this.clientReadOnly.v2.user(tweetWithContext.tweet.author_id!, {
         'user.fields': ['created_at', 'public_metrics']
       });
 
@@ -111,13 +115,13 @@ export class TweetService {
         return false;
       }
 
-      const tweetText = tweet.text.toLowerCase();
+      const tweetText = tweetWithContext.tweet.text.toLowerCase();
       if (CONFIG.SECURITY.BLOCKED_KEYWORDS.some(keyword => tweetText.includes(keyword))) {
         logger.debug('Blocked keywords validation failed', {
           id: user.data.id,
           name: user.data.name,
           username: user.data.username,
-          tweetId: tweet.id,
+          tweetId: tweetWithContext.tweet.id,
           tweetText
         }, true);
         return false;
@@ -126,47 +130,51 @@ export class TweetService {
       return true;
     } catch (e: any) {
       logger.error('Error validating tweet', {
-        tweetId: tweet.id,
+        tweetId: tweetWithContext.tweet.id,
         error: e.stack
       });
       throw e;
     }
   }
 
-  async extractDescriptionAndContext(tweet: TweetV2): Promise<{
-    description: string;
-    context: string;
-  }> {
+  async extractDescriptionAndContext(tweetWithContext: TweetWithContext): Promise<DescriptionAndContext> {
     const contextTexts: string[] = [];
     const contextIds = new Set<string>();
 
     try {
-      if (tweet.conversation_id! !== tweet.id) {
-        contextIds.add(tweet.conversation_id!);
+      if (tweetWithContext.tweet.conversation_id! !== tweetWithContext.tweet.id) {
+        contextIds.add(tweetWithContext.tweet.conversation_id!);
       }
 
-      for (const referencedTweet of tweet.referenced_tweets || []) {
+      for (const referencedTweet of tweetWithContext.tweet.referenced_tweets || []) {
         if (referencedTweet.type === 'quoted' || referencedTweet.type === 'replied_to') {
           contextIds.add(referencedTweet.id);
         }
       }
 
       for (const contextTweetId of contextIds) {
-        const contextTweet = await this.clientReadOnly.v2.singleTweet(contextTweetId);
-        contextTexts.push(contextTweet.data.text);
+        let contextTweet: Tweet | undefined;
+        if (tweetWithContext.includedTweets) {
+          contextTweet = tweetWithContext.includedTweets.find(t => t.id === contextTweetId);
+        }
+        if (!contextTweet) {
+          const response = await this.clientReadOnly.v2.singleTweet(contextTweetId);
+          contextTweet = response.data;
+        }
+        contextTexts.push(contextTweet.text);
       }
 
       return {
-        description: this.sanitizeTweetText(tweet.text),
+        description: this.sanitizeTweetText(tweetWithContext.tweet.text),
         context: contextTexts.map(text => this.sanitizeTweetText(text)).join('\n')
       };
     } catch (e: any) {
       logger.error('Error extracting description and context', {
-        tweetId: tweet.id,
+        tweetId: tweetWithContext.tweet.id,
         error: e.stack
       });
       return {
-        description: this.sanitizeTweetText(tweet.text),
+        description: this.sanitizeTweetText(tweetWithContext.tweet.text),
         context: ''
       };
     }

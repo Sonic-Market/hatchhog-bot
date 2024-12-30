@@ -1,10 +1,9 @@
-import {TweetV2} from 'twitter-api-v2';
 import {logger} from './utils/logger';
 import {TweetService} from "./services/TweetService.ts";
 import {RateLimiterService} from "./services/RateLimiterService.ts";
 import {TokenInfoGeneratorService} from "./services/TokenInfoGeneratorService.ts";
 import {HatchhogService} from "./services/HatchhogService.ts";
-import {HatchhogTokenInfo, RateLimit} from "./types.ts";
+import {HatchhogTokenInfo, RateLimit, TweetWithContext} from "./types.ts";
 
 export class HatchhogBot {
   private tweetService: TweetService;
@@ -13,7 +12,7 @@ export class HatchhogBot {
   private hatchhogService: HatchhogService;
 
   private processedTweets: Set<string>;
-  private queue: TweetV2[] = [];
+  private queue: TweetWithContext[] = [];
   private processing = false;
 
   constructor() {
@@ -43,20 +42,23 @@ export class HatchhogBot {
             sinceId = undefined;
             sinceIdUpdatedAt = undefined;
           }
-          const {tweets, newestId} = await this.tweetService.searchRecentMentions(startTime, sinceId);
+          const {
+            tweets: tweetsWithContext,
+            newestId
+          } = await this.tweetService.searchRecentMentions(startTime, sinceId);
           if (newestId) sinceIdUpdatedAt = Date.now();
           sinceId = newestId;
 
-          for (const tweet of tweets) {
-            if (!this.processedTweets.has(tweet.id) && !this.processedTweets.has(tweet.conversation_id!)) {
-              this.processedTweets.add(tweet.id);
-              this.processedTweets.add(tweet.conversation_id!);
-              await this.addToLaunchQueue(tweet);
+          for (const tweetWithContext of tweetsWithContext) {
+            if (!this.processedTweets.has(tweetWithContext.tweet.id) && !this.processedTweets.has(tweetWithContext.tweet.conversation_id!)) {
+              this.processedTweets.add(tweetWithContext.tweet.id);
+              this.processedTweets.add(tweetWithContext.tweet.conversation_id!);
+              await this.addToLaunchQueue(tweetWithContext);
               logger.info('Added tweet to launch queue', {
-                tweetId: tweet.id,
-                conversationId: tweet.conversation_id,
-                authorId: tweet.author_id,
-                text: tweet.text
+                tweetId: tweetWithContext.tweet.id,
+                conversationId: tweetWithContext.tweet.conversation_id,
+                authorId: tweetWithContext.tweet.author_id,
+                text: tweetWithContext.tweet.text
               }, true);
             }
           }
@@ -78,8 +80,8 @@ export class HatchhogBot {
     }
   }
 
-  private async addToLaunchQueue(tweet: TweetV2) {
-    this.queue.push(tweet);
+  private async addToLaunchQueue(tweetWithContext: TweetWithContext) {
+    this.queue.push(tweetWithContext);
     this.processLaunchQueue();
   }
 
@@ -101,12 +103,12 @@ export class HatchhogBot {
     //   });
     // }
     while (this.queue.length > 0) {
-      const tweet = this.queue[0];
+      const tweetWithContext = this.queue[0];
       try {
-        await this.handleTweet(tweet);
+        await this.handleTweet(tweetWithContext);
       } catch (e: any) {
         logger.error('Error handling tweet from queue', {
-          tweetId: tweet.id,
+          tweetId: tweetWithContext.tweet.id,
           error: e.stack
         });
       }
@@ -116,24 +118,24 @@ export class HatchhogBot {
     this.processing = false;
   }
 
-  private async handleTweet(tweet: TweetV2) {
+  private async handleTweet(tweetWithContext: TweetWithContext) {
     try {
-      const rateLimit = await this.rateLimiter.checkLimits(tweet.author_id!);
+      const rateLimit = await this.rateLimiter.checkLimits(tweetWithContext.tweet.author_id!);
 
       if (!(rateLimit.user.success && rateLimit.global.success)) {
         logger.debug('Rate limit exceeded', {
-          tweetId: tweet.id,
+          tweetId: tweetWithContext.tweet.id,
           rateLimit
         }, true);
         return;
       }
 
-      const isValidTweet = await this.tweetService.validateTweet(tweet);
+      const isValidTweet = await this.tweetService.validateTweet(tweetWithContext);
 
       if (!isValidTweet) {
         logger.debug('Invalid tweet', {
-          tweetId: tweet.id,
-          authorId: tweet.author_id
+          tweetId: tweetWithContext.tweet.id,
+          authorId: tweetWithContext.tweet.author_id
         }, true);
         return;
       }
@@ -141,12 +143,9 @@ export class HatchhogBot {
       // NOTE: Commented out because it's causing out account to be marked as spam
       // await this.tweetService.replyToTweet('🥚 Please wait, Your token is hatching...', tweet.id);
 
-      const descriptionAndContext = await this.tweetService.extractDescriptionAndContext(tweet);
+      const descriptionAndContext = await this.tweetService.extractDescriptionAndContext(tweetWithContext);
 
-      const hatchhogTokenInfo = await this.tokenInfoGeneratorService.generateTokenInfo(
-        descriptionAndContext.description,
-        descriptionAndContext.context
-      );
+      const hatchhogTokenInfo = await this.tokenInfoGeneratorService.generateTokenInfo(descriptionAndContext);
 
       const launchedTokenAddress = await this.hatchhogService.hatch(
         hatchhogTokenInfo.name,
@@ -157,17 +156,17 @@ export class HatchhogBot {
       const launchUrl = await this.hatchhogService.getSonicMarketUrlForToken(launchedTokenAddress)
 
       const tweetText = this.makeTweetText(hatchhogTokenInfo, launchUrl, rateLimit.user, rateLimit.global);
-      await this.tweetService.replyToTweet(tweetText, tweet.id);
+      await this.tweetService.replyToTweet(tweetText, tweetWithContext.tweet.id);
       logger.info('Tweet handled successfully and replied', {
-        tweetId: tweet.id,
-        conversationId: tweet.conversation_id,
-        authorId: tweet.author_id,
-        text: tweet.text,
+        tweetId: tweetWithContext.tweet.id,
+        conversationId: tweetWithContext.tweet.conversation_id,
+        authorId: tweetWithContext.tweet.author_id,
+        text: tweetWithContext.tweet.text,
         reply: tweetText
       }, true);
     } catch (error: any) {
       logger.error('Error handling tweet', {
-        tweetId: tweet.id,
+        tweetId: tweetWithContext.tweet.id,
         error: error.stack
       });
       throw error;
