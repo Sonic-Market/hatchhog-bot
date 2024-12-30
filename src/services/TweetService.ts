@@ -184,21 +184,53 @@ export class TweetService {
         contextTexts.push(contextTweet.text);
         mediaKeys.push(...(contextTweet.attachments?.media_keys || []));
       }
-      const mediaKeysSet = new Set(mediaKeys);
-      const imageUrls = tweetWithContext.includedMedia
-        .filter(media => mediaKeysSet.has(media.media_key))
-        .map(media => {
-          if (media.type === 'photo') {
-            return media.url;
-          } else {
-            return media.preview_image_url;
+      const imageUrls: string[] = [];
+      const missingMediaKeys: string[] = [];
+
+      for (const mediaKey of mediaKeys) {
+        const media = tweetWithContext.includedMedia.find(m => m.media_key === mediaKey);
+        if (media) {
+          const url = media.type === 'photo' ? media.url : media.preview_image_url;
+          if (url) {
+            imageUrls.push(url);
           }
-        }).filter(url => url !== undefined) as string[];
+        } else {
+          missingMediaKeys.push(mediaKey);
+        }
+      }
+
+      if (missingMediaKeys.length > 0) {
+        try {
+          const mediaResponse = await this.clientReadOnly.v2.tweets(
+            Array.from(contextIds),
+            {
+              'tweet.fields': ['attachments'],
+              'media.fields': ['preview_image_url', 'url'],
+              expansions: ['attachments.media_keys'],
+            }
+          );
+
+          if (mediaResponse.includes?.media) {
+            mediaResponse.includes.media.forEach(media => {
+              const url = media.type === 'photo' ? media.url : media.preview_image_url;
+              if (url) {
+                imageUrls.push(url);
+              }
+            });
+          }
+        } catch (e: any) {
+          logger.warn('Error fetching missing media', {
+            tweetId: tweetWithContext.tweet.id,
+            missingMediaKeys,
+            error: e.stack
+          }, true);
+        }
+      }
 
       return {
         description: this.sanitizeTweetText(tweetWithContext.tweet.text),
         context: contextTexts.map(text => this.sanitizeTweetText(text)).join('\n'),
-        imageUrls: imageUrls
+        imageUrls
       };
     } catch (e: any) {
       logger.error('Error extracting description and context', {
