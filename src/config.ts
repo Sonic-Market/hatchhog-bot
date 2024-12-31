@@ -20,6 +20,14 @@ export const CONFIG = {
     NAME: 'Hatchhog',
     NAME_REGEX: /hatchhog/gi,
     IS_PREMIUM: false,
+    TEMPLATE: `
+Hey @TheHatchhog, hatch a new memecoin! 🐣
+
+Here’s my wallet: [YourWalletAddressHere]
+Let’s make some magic! 🚀
+
+(Don’t worry about following the template—post, reply, or quote. Just tag @TheHatchhog and include your wallet. Hatchhog’s got you covered!) 
+    `,
   },
   CONTRACT: {
     CHAIN: sonicMainnet,

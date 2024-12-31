@@ -77,9 +77,12 @@ export class TokenInfoGeneratorService {
       FYI; description and context include the attached image(s).
       each image is either a photo or a preview image of a video.
     ` : '';
+    const descriptionPrompt = description.length > 0 ? description : (
+      (contextPrompt.length > 0 || imagePrompt.length > 0) ? 'No specific description provided' : 'Create a randomly generated meme cryptocurrency.'
+    );
     const detailsPrompt = `
       Create a meme cryptocurrency based on the following description:
-      "${description}"
+      "${descriptionPrompt}"
 
       ${contextPrompt}
 

@@ -259,9 +259,14 @@ export class TweetService {
   }
 
   private sanitizeTweetText(text: string): string {
+    const normalizeText = (str: string) => str.replace(/\s+/g, '').trim();
+    if (normalizeText(text) === normalizeText(CONFIG.BOT.TEMPLATE)) {
+      return '';
+    }
+
     return text
       .replace(CONFIG.BOT.HANDLE_REGEX, '')
-      .replace(CONFIG.BOT.NAME_REGEX, '')
+      .replace(CONFIG.BOT.NAME_REGEX, 'It')
       .trim();
   }
 }
