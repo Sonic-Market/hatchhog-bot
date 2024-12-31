@@ -194,6 +194,8 @@ export class HatchhogBot {
     return [
       `🎉 Congratulations! Your token "${hatchhogTokenInfo.name}" ( $${hatchhogTokenInfo.symbol} ) has been successfully hatched 🐣`,
       '',
+      `📝 ${hatchhogTokenInfo.description}`,
+      '',
       creatorDisplay,
       '',
       `🔗 Launch URL: ${launchUrl}`,
