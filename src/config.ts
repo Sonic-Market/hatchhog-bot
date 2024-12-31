@@ -16,7 +16,8 @@ export const CONFIG = {
   },
   BOT: {
     HANDLE: '@TheHatchhog',
-    HANDLE_REGEX: /@TheHatchhog/g
+    HANDLE_REGEX: /@TheHatchhog/g,
+    IS_PREMIUM: false,
   },
   CONTRACT: {
     CHAIN: sonicMainnet,

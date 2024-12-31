@@ -4,6 +4,7 @@ import {RateLimiterService} from "./services/RateLimiterService.ts";
 import {TokenInfoGeneratorService} from "./services/TokenInfoGeneratorService.ts";
 import {HatchhogService} from "./services/HatchhogService.ts";
 import {HatchhogTokenInfo, RateLimit, TweetWithContext} from "./types.ts";
+import {CONFIG} from "./config.ts";
 
 export class HatchhogBot {
   private tweetService: TweetService;
@@ -190,6 +191,16 @@ export class HatchhogBot {
     const creatorDisplay = hatchhogTokenInfo.tokenReceiver
       ? `Token Creator: ${hatchhogTokenInfo.tokenReceiver.slice(0, 6)}...${hatchhogTokenInfo.tokenReceiver.slice(-4)}`
       : `Token Creator: anonymous`;
+
+    if (!CONFIG.BOT.IS_PREMIUM) {
+      // 280 characters limit
+      return [
+        `🎉 Your token "${hatchhogTokenInfo.name}" ( $${hatchhogTokenInfo.symbol} ) has been successfully hatched 🐣`,
+        `🔗 Launch URL: ${launchUrl}`,
+        `👤 ${userRateLimit.remainingRequests} more tokens (refreshes in ${userTimeDisplay})`,
+        `🌐 ${globalRateLimit.remainingRequests} more launches (refreshes in ${globalTimeDisplay})`
+      ].join('\n');
+    }
 
     return [
       `🎉 Congratulations! Your token "${hatchhogTokenInfo.name}" ( $${hatchhogTokenInfo.symbol} ) has been successfully hatched 🐣`,
