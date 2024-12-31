@@ -195,25 +195,16 @@ export class HatchhogBot {
     if (!CONFIG.BOT.IS_PREMIUM) {
       // 280 characters limit
       return [
-        `🎉 Your token "${hatchhogTokenInfo.name}" ( $${hatchhogTokenInfo.symbol} ) has been successfully hatched 🐣`,
-        `🔗 Launch URL: ${launchUrl}`,
-        `👤 ${userRateLimit.remainingRequests} more tokens (refreshes in ${userTimeDisplay})`,
-        `🌐 ${globalRateLimit.remainingRequests} more launches (refreshes in ${globalTimeDisplay})`
+        `🎉 "${hatchhogTokenInfo.name}" ( $${hatchhogTokenInfo.symbol} ) has landed in its nest! 🥚`,
+        `👉 Hatch me if you can: ${launchUrl}`,
+        `🦔 Daily remaining hatchhogs: ${globalRateLimit.remainingRequests} (${userRateLimit.remainingRequests} for you)`,
       ].join('\n');
     }
 
     return [
-      `🎉 Congratulations! Your token "${hatchhogTokenInfo.name}" ( $${hatchhogTokenInfo.symbol} ) has been successfully hatched 🐣`,
-      '',
-      `📝 ${hatchhogTokenInfo.description}`,
-      '',
-      creatorDisplay,
-      '',
-      `🔗 Launch URL: ${launchUrl}`,
-      '',
-      `ℹ️ Quick FYI:`,
-      `👤 You can launch ${userRateLimit.remainingRequests} more tokens (refreshes in ${userTimeDisplay})`,
-      `🌐 The network can handle ${globalRateLimit.remainingRequests} more launches (refreshes in ${globalTimeDisplay})`
+      `🎉 "${hatchhogTokenInfo.name}" ( $${hatchhogTokenInfo.symbol} ) has landed in its nest! 🥚`,
+      `👉 Hatch me if you can: ${launchUrl}`,
+      `🦔 Daily remaining hatchhogs: ${globalRateLimit.remainingRequests} (${userRateLimit.remainingRequests} for you)`,
     ].join('\n');
   }
 }
