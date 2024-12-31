@@ -17,6 +17,8 @@ export const CONFIG = {
   BOT: {
     HANDLE: '@TheHatchhog',
     HANDLE_REGEX: /@TheHatchhog/g,
+    NAME: 'Hatchhog',
+    NAME_REGEX: /hatchhog/gi,
     IS_PREMIUM: false,
   },
   CONTRACT: {

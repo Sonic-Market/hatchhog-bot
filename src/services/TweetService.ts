@@ -259,6 +259,9 @@ export class TweetService {
   }
 
   private sanitizeTweetText(text: string): string {
-    return text.replace(CONFIG.BOT.HANDLE_REGEX, '').trim();
+    return text
+      .replace(CONFIG.BOT.HANDLE_REGEX, '')
+      .replace(CONFIG.BOT.NAME_REGEX, '')
+      .trim();
   }
 }
