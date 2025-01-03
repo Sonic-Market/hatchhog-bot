@@ -51,7 +51,11 @@ export class HatchhogBot {
           sinceId = newestId;
 
           for (const tweetWithContext of tweetsWithContext) {
-            if (!this.processedTweets.has(tweetWithContext.tweet.id) && !this.processedTweets.has(tweetWithContext.tweet.conversation_id!)) {
+            if (
+              !this.processedTweets.has(tweetWithContext.tweet.id) &&
+              !this.processedTweets.has(tweetWithContext.tweet.conversation_id!) &&
+              tweetWithContext.tweet.author_id !== CONFIG.BOT.ID
+            ) {
               this.processedTweets.add(tweetWithContext.tweet.id);
               this.processedTweets.add(tweetWithContext.tweet.conversation_id!);
               await this.addToLaunchQueue(tweetWithContext);

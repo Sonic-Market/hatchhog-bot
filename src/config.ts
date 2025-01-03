@@ -15,6 +15,7 @@ export const CONFIG = {
     BLOCKED_KEYWORDS: []
   },
   BOT: {
+    ID: '1873274063239692288',
     HANDLE: '@TheHatchhog',
     HANDLE_REGEX: /@TheHatchhog/g,
     NAME: 'Hatchhog',

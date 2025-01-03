@@ -226,11 +226,18 @@ export class TweetService {
           }, true);
         }
       }
+      const creator = tweetWithContext.includedUsers.find(u => u.id === tweetWithContext.tweet.author_id);
 
       return {
         description: this.sanitizeTweetText(tweetWithContext.tweet.text),
         context: contextTexts.map(text => this.sanitizeTweetText(text)).join('\n'),
-        imageUrls
+        imageUrls,
+        creator: {
+          id: creator?.id,
+          name: creator?.name,
+          username: creator?.username,
+          tweetId: tweetWithContext.tweet.id
+        }
       };
     } catch (e: any) {
       logger.error('Error extracting description and context', {
