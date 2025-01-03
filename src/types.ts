@@ -68,4 +68,10 @@ export type DescriptionAndContext = {
   description: string;
   context: string;
   imageUrls: string[];
+  creator: {
+    id?: string | undefined;
+    name?: string | undefined;
+    username?: string | undefined;
+    tweetId: string;
+  };
 }

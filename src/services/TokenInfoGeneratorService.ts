@@ -42,7 +42,7 @@ export class TokenInfoGeneratorService {
       const tokenReceiver = this.extractWalletAddress(descriptionAndContext.description);
       const generatedTokenInfoDetails = await this.generateTokenInfoDetails(descriptionAndContext);
       const imageBase64 = await this.generateTokenImage(generatedTokenInfoDetails);
-      const metaUri = await this.uploadToIpfs(imageBase64, generatedTokenInfoDetails);
+      const metaUri = await this.uploadToIpfs(imageBase64, generatedTokenInfoDetails, descriptionAndContext);
 
       return {
         name: generatedTokenInfoDetails.name,
@@ -163,7 +163,7 @@ export class TokenInfoGeneratorService {
     return imageResponse.data[0].b64_json;
   }
 
-  private async uploadToIpfs(imageBase64: string, tokenInfo: TokenInfoDetails): Promise<string> {
+  private async uploadToIpfs(imageBase64: string, tokenInfo: TokenInfoDetails, descriptionAndContext: DescriptionAndContext): Promise<string> {
     const imageBuffer = Buffer.from(imageBase64, 'base64');
     const fileName = `${tokenInfo.symbol}-${uuidv4()}.png`;
     const file = new File([imageBuffer], fileName, {type: 'image/png'});
@@ -176,6 +176,7 @@ export class TokenInfoGeneratorService {
       symbol: tokenInfo.symbol,
       description: tokenInfo.description,
       image: imageHash,
+      creator: descriptionAndContext.creator,
     };
     const metadataFileName = `${tokenInfo.symbol}-${uuidv4()}.json`;
 
